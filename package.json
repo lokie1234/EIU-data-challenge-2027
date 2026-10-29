@@ -1,0 +1,10 @@
+{
+  "name": "eiu-data-challenge-2027",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Independent local interface draft for EIU Data Challenge 2027",
+  "scripts": { "dev": "node server.mjs", "start": "node server.mjs", "bundle:scene": "node bundle-scene.mjs" },
+  "dependencies": { "@react-three/fiber": "^9.8.1", "react": "19.2.8", "react-dom": "19.2.8", "three": "^0.186.1" },
+  "devDependencies": { "esbuild": "^0.27.0" },
+  "engines": { "node": ">=20" }
+}
