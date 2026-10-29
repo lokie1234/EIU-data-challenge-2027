@@ -15,7 +15,7 @@ Mở http://localhost:2027. Đổi cổng bằng biến môi trường PORT nế
 
 ## Phạm vi bản nháp
 
-- Màn mở đầu toàn màn hình dùng scene robot 3D và headline “Beyond Intelligence / Into Innovation” từ landing page EIU gốc. CTA mở khung thông tin cuộc thi bằng view transition; reduced motion bỏ hiệu ứng chuyển động và dùng đồ họa tĩnh dự phòng.
+- Màn mở đầu toàn màn hình dùng title chính “EIU Data Challenge 2027” trên một dòng và scene robot 3D từ landing page EIU gốc. CTA mở khung thông tin cuộc thi bằng view transition; reduced motion bỏ hiệu ứng chuyển động và dùng đồ họa tĩnh dự phòng.
 - Khung nội dung desktop chia hai cột: thông điệp và CTA cố định bên trái, 5 tab Tổng quan / Vòng thi / Lịch trình / Giải thưởng / FAQ bên phải. Chỉ hiện một tab tại một thời điểm, không cần cuộn qua landing page dài. Panel cho phép cuộn khi zoom hoặc chiều cao không đủ.
 - Mobile thu gọn phần giới thiệu, giữ tab phía trên khi cuộn; nội dung được cuộn tự nhiên để dễ đọc.
 - Tab chính và tab vòng thi hỗ trợ phím mũi tên / Home / End. FAQ native, modal đăng ký có validation, nút quay lại landing, URL hash và lịch sử Back/Forward.

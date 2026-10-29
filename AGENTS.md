@@ -19,7 +19,7 @@
 
 ## Thiết kế đã thống nhất
 
-1. Màn mở đầu toàn màn hình dùng headline `Beyond Intelligence / Into Innovation` và scene robot 3D lấy từ landing page hiện tại của project gốc.
+1. Màn mở đầu toàn màn hình dùng title chính `EIU Data Challenge 2027` trên một dòng và scene robot 3D lấy từ landing page hiện tại của project gốc.
 2. Nút **Khám phá cuộc thi** chuyển sang khung nội dung compact, có hiệu ứng chuyển tiếp và nút quay về màn mở đầu.
 3. Desktop: bên trái là thông điệp và nút đăng ký; bên phải là khung 5 tab: **Tổng quan / Vòng thi / Lịch trình / Giải thưởng / FAQ**. Chỉ hiện một tab tại một thời điểm, không còn landing page dài phải cuộn qua tất cả các phần.
 4. Mobile: giới thiệu thu gọn, tab giữ phía trên khi cuộn, nội dung được cuộn tự nhiên.
