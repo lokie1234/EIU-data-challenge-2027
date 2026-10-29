@@ -3,8 +3,8 @@
 import { Component, type ReactNode, Suspense, memo, useCallback, useEffect, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
-import GuardianRobot3D, { type RobotInteractionState } from "./GuardianRobot3D";
-import AgentWorld3D from "./AgentWorld3D";
+import { type RobotInteractionState } from "./GuardianRobot3D";
+import DataLab3D from "./DataLab3D";
 
 interface HeroSceneProps {
   languageIntro?: boolean;
@@ -198,7 +198,7 @@ function HeroScene({
   const revealed = prepared && enter;
   return (
     <div style={{ width: "100%", height: "100%", opacity: revealed ? 1 : 0,
-      pointerEvents: revealed ? "auto" : "none", transition: "opacity 1.2s cubic-bezier(.22,1,.36,1)" }}>
+      pointerEvents: revealed ? "auto" : "none", transition: paused ? "none" : "opacity 1.8s cubic-bezier(.22,1,.36,1)" }}>
     <SceneBoundary onUnavailable={onUnavailable}>
     <Canvas
       camera={{ position: [0, 0, 10.5], fov: 50 }}
@@ -225,23 +225,7 @@ function HeroScene({
         {/* Procedural Studio Lighting Environment for Photorealistic Reflections */}
         <EiuStudioLightingEnvironment />
 
-        {/* Spatial AI World Orbits & Signals — renders behind and around robot */}
-        <AgentWorld3D stage={revealed ? stage : 0} />
-
-        {/* EIU Guardian Robot — Hero subject */}
-        <GuardianRobot3D
-          languageIntro={languageIntro}
-          languageAnchor={languageAnchor}
-          languageScreen={languageScreen}
-          returningToOrbit={returningToOrbit}
-          onOrbitArrival={onOrbitArrival}
-          onLanguageArrival={onLanguageArrival}
-          mouseRef={mouseRef}
-          stage={stage}
-          robotState={robotState}
-          isCtaHovered={isCtaHovered}
-                  enter={revealed}
-        />
+        <DataLab3D hovered={isCtaHovered} enter={revealed} motion={!paused} />
         <SceneWarmup onReady={handleReady} onUnavailable={onUnavailable} />
       </Suspense>
     </Canvas>

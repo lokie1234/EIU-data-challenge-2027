@@ -60,6 +60,7 @@ npm run dev
 | `app.js` | Điều khiển tab có sẵn trong HTML, chuyển màn, history, tab vòng thi và form demo |
 | `src/scene.tsx` | Adapter React của scene gốc; quản lý pause, hover, reduced motion và fallback |
 | `src/landing/HeroScene.tsx` | Scene 3D gốc và lighting / performance |
+| `src/landing/DataLab3D.tsx` | 5 robot biến thể ngồi làm việc, bàn máy tính, phông dashboard chart động |
 | `src/landing/GuardianRobot3D.tsx` | Robot và drone gốc |
 | `src/landing/AgentWorld3D.tsx` | Quỹ đạo và hiệu ứng không gian |
 | `src/landing/landingDroneFlight.ts` | Logic chuyển động drone, sao chép từ `lib/landingDroneFlight.ts` của project gốc |
@@ -97,3 +98,11 @@ Nếu dependencies đã có, chỉ chạy `npm run bundle:scene` sau khi sửa s
 - Server đã được chạy tại `http://localhost:2027` ở phiên triển khai; phiên mới cần xem server còn chạy không trước khi khởi động thêm.
 - Lần chỉnh layout compact đã đóng gói scene; không chạy browser review, test, lint hay typecheck theo yêu cầu người dùng. Không tuyên bố đã kiểm thử giao diện.
 - Công việc tiếp theo là tiếp nhận feedback của người dùng và sửa trực tiếp bản local này.
+- Scene intro dùng `DataLab3D`: 5 robot (tròn, hộp, capsule, lục giác, giáp góc cạnh). Model Guardian gốc vẫn giữ trong source. Reduced motion hiển thị scene tĩnh.
+
+## Cập nhật landing mới nhất
+
+- Intro chỉ hiển thị tiêu đề `EIU Data Challenge 2027` bên trái; bấm tiêu đề để vào hub. Header hiện lại khi vào hub.
+- Một robot Guardian gốc navy–gold chỉ hiện phần thân trên, nằm bên phải và nghiêng sang trái khoảng 23 độ, bấm máy tính. `GuardianRobot3D` có prop `seated` và `leaning` để tắt bay/quỹ đạo/drone, giữ góc tay phù hợp bàn phím và đầu hơi cân lại nhìn người xem.
+- `DataLab3D` có mặt bàn nằm ngang, bàn phím, chuột và màn hình; không chân/đế bàn, không ghế/chân robot. Giữ yêu cầu trước đó không logo. Mobile đặt tiêu đề phía trên, robot phía dưới và sát phải.
+- Chart động phủ toàn viewport và hiển thị trên màn hình máy tính, không nhãn chữ, cập nhật 30fps. Vẫn giữ pause và reduced motion.

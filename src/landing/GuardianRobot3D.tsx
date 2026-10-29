@@ -23,6 +23,8 @@ export type RobotInteractionState =
   | "success";
 
 interface GuardianRobotProps {
+  seated?: boolean;
+  leaning?: boolean;
   languageIntro?: boolean;
   languageAnchor?: React.RefObject<HTMLDivElement | null>;
   languageScreen?: React.RefObject<HTMLDivElement | null>;
@@ -60,7 +62,7 @@ function compactLogo(source: THREE.Texture) {
 }
 
 // ─── EIU Crest Badge on Robot Breastplate (Prominently mounted on torso front) ──
-function useBrandLogoTexture(chest = false) {
+export function useBrandLogoTexture(chest = false) {
   const source = useLoader(THREE.TextureLoader, BRAND_LOGOS[chest ? 0 : 1]);
   const texture = useMemo(() => {
     const cropped = compactLogo(source).clone();
@@ -735,6 +737,8 @@ function RoboticHand5Fingers({
 
 // ─── Main Guardian Robot 3D ───────────────────────────────────────────────────
 export default function GuardianRobot3D({
+  seated = false,
+  leaning = false,
   languageIntro = false,
   languageAnchor,
   languageScreen,
@@ -1217,6 +1221,24 @@ export default function GuardianRobot3D({
     if (!enter) return;
     delta = Math.min(delta, .05);
     const t = clock.getElapsedTime();
+
+    if (seated) {
+      if (rootRef.current) {
+        rootRef.current.position.set(0, 0, 0);
+        rootRef.current.scale.setScalar(1);
+        rootRef.current.rotation.set(0, 0, 0);
+      }
+      if (torsoRef.current) torsoRef.current.rotation.set(0, 0, 0);
+      if (headRef.current) headRef.current.rotation.set(.045 + Math.sin(t * .7) * .018, Math.sin(t * .4) * .035, leaning ? -.12 : 0);
+      if (leftArmRef.current) leftArmRef.current.rotation.set(leaning ? -.1 + Math.sin(t * 7) * .018 : -.1 + Math.sin(t * 7) * .025, 0, leaning ? -.12 : -.06);
+      if (rightArmRef.current) rightArmRef.current.rotation.set(leaning ? -.1 + Math.sin(t * 7 + 2) * .018 : -.1 + Math.sin(t * 7 + 2) * .025, 0, .06);
+      if (leftForearmRef.current) leftForearmRef.current.rotation.set(leaning ? -1.9 + Math.sin(t * 8) * .045 : -1.38 + Math.sin(t * 8) * .065, -.12, 0);
+      if (rightForearmRef.current) rightForearmRef.current.rotation.set(leaning ? -.65 + Math.sin(t * 8 + 2) * .045 : -1.38 + Math.sin(t * 8 + 2) * .065, .12, 0);
+      const blink = Math.sin(t * .8) > .997 ? .08 : 1;
+      if (leftEyeRef.current) leftEyeRef.current.scale.y = THREE.MathUtils.damp(leftEyeRef.current.scale.y, blink, 22, delta);
+      if (rightEyeRef.current) rightEyeRef.current.scale.y = THREE.MathUtils.damp(rightEyeRef.current.scale.y, blink, 22, delta);
+      return;
+    }
 
     advanceRobotImpact(droneObstacle.current, delta);
 
@@ -1701,16 +1723,16 @@ export default function GuardianRobot3D({
   return (
     <>
       {/* ─── VISIBLE ROBOT PATROL ORBIT (FULL CLOSED LOOP, NO VERTICAL LINES) ─── */}
-      <RobotOrbitTrack curve={masterOrbitCurve} isErrorRef={isError} />
+      {!seated && <RobotOrbitTrack curve={masterOrbitCurve} isErrorRef={isError} />}
 
       <group
         name="landing-guardian-robot"
         ref={rootRef}
-        position={[-1.5, -12, -6]}
-        scale={4}
-        onPointerDown={handlePointerDown}
+        position={seated ? [0, 0, 0] : [-1.5, -12, -6]}
+        scale={seated ? 1 : 4}
+        onPointerDown={seated ? undefined : handlePointerDown}
         onPointerOver={() => {
-          if (gl.domElement && !languageIntro && !returningToOrbit) gl.domElement.style.cursor = "grab";
+          if (gl.domElement && !seated && !languageIntro && !returningToOrbit) gl.domElement.style.cursor = "grab";
         }}
         onPointerOut={() => {
           if (gl.domElement && !isDragging.current) gl.domElement.style.cursor = "auto";
@@ -1881,7 +1903,7 @@ export default function GuardianRobot3D({
             ))}
 
             {/* Official EIU Crest Badge on Robot Breastplate */}
-            <EiuCrestBadge />
+            {!seated && <EiuCrestBadge />}
 
 
             {/* ─── CENTRAL AI CORE REACTOR ─── */}
@@ -1968,7 +1990,7 @@ export default function GuardianRobot3D({
             ))}
 
             {/* ─── LEVITATING REPULSOR DRIVE (SLIMMER & VERTICALLY BALANCED) ─── */}
-            <group position={[0, -0.55, 0]}>
+            <group position={[0, -0.55, 0]} visible={!seated}>
               {/* Hexagonal Pelvic Bulkhead Chassis */}
               <mesh material={materials.deepNavy}>
                 <cylinderGeometry args={[0.21, 0.13, 0.13, 6]} />
@@ -2052,7 +2074,7 @@ export default function GuardianRobot3D({
 
             {/* ─── ARTICULATED ERGONOMIC ARMS (CLOSER TO BODY & PROPORTIONATE) ─── */}
             {/* Left Arm Assembly */}
-            <group ref={leftArmRef} position={[-0.375, 0.02, 0.035]}>
+            <group ref={leftArmRef} position={[-0.375, 0.02, 0.035]} rotation={leaning ? [-.1, 0, -.12] : seated ? [-.1, 0, -.06] : [0, 0, 0]}>
               {/* Exposed Spherical Shoulder Ball Socket */}
               <mesh material={materials.navyJoint}>
                 <sphereGeometry args={[0.105, 24, 20]} />
@@ -2094,7 +2116,7 @@ export default function GuardianRobot3D({
               </group>
 
               {/* Left Forearm Articulation (Elbow Flexion Hub) */}
-              <group ref={leftForearmRef} position={[-0.025, -0.24, 0]}>
+              <group ref={leftForearmRef} position={[-0.025, -0.24, 0]} rotation={leaning ? [-1.9, -.12, 0] : seated ? [-1.38, -.12, 0] : [0, 0, 0]}>
                 {/* Central Hinge Cylinder & Gold Axle Pin */}
                 <mesh rotation={[0, 0, Math.PI / 2]} material={materials.navyJoint}>
                   <cylinderGeometry args={[0.050, 0.050, 0.056, 20]} />
@@ -2132,7 +2154,7 @@ export default function GuardianRobot3D({
             </group>
 
             {/* Right Arm Assembly */}
-            <group ref={rightArmRef} position={[0.375, 0.02, 0.035]}>
+            <group ref={rightArmRef} position={[0.375, 0.02, 0.035]} rotation={leaning ? [-.1, 0, .06] : seated ? [-.1, 0, .06] : [0, 0, 0]}>
               {/* Exposed Spherical Shoulder Ball Socket */}
               <mesh material={materials.navyJoint}>
                 <sphereGeometry args={[0.105, 24, 20]} />
@@ -2174,7 +2196,7 @@ export default function GuardianRobot3D({
               </group>
 
               {/* Right Forearm Articulation (Elbow Flexion Hub) */}
-              <group ref={rightForearmRef} position={[0.025, -0.24, 0]}>
+              <group ref={rightForearmRef} position={[0.025, -0.24, 0]} rotation={leaning ? [-.65, .12, 0] : seated ? [-1.38, .12, 0] : [0, 0, 0]}>
                 {/* Central Hinge Cylinder & Gold Axle Pin */}
                 <mesh rotation={[0, 0, Math.PI / 2]} material={materials.navyJoint}>
                   <cylinderGeometry args={[0.050, 0.050, 0.056, 20]} />
@@ -2213,7 +2235,7 @@ export default function GuardianRobot3D({
           </group>
 
           {/* ───────────── AERODYNAMIC SCULPTED HEAD WITH GIMBAL MOUNT ───────────── */}
-          <group ref={headRef} position={[0, 0.41, 0]}>
+          <group ref={headRef} position={[0, 0.41, 0]} rotation={[0, 0, leaning ? -.12 : 0]}>
             {showErrorBadge && <VisorStatusDisplay status="error" />}
             {showRestrictedBadge && !showErrorBadge && <VisorStatusDisplay status="restricted" text={robotState === "wrongPasscode" ? "Wrong passcode" : undefined} />}
             {showLoadingBadge && !showErrorBadge && !showRestrictedBadge && <VisorStatusDisplay status="loading" />}
@@ -2340,8 +2362,8 @@ export default function GuardianRobot3D({
       </group>
     </group>
     {/* Scene-space siblings: dragging, tilting or scaling the robot cannot move drones. */}
-    <group name="landing-drone-constellation" position={[0, 0, 0]}>
-        {DRONE_CONFIGS.map((config) => (
+    <group name="landing-drone-constellation" position={[0, 0, 0]} visible={!seated}>
+        {!seated && DRONE_CONFIGS.map((config) => (
           <AutonomousDrone
             key={config.id}
             config={config}
