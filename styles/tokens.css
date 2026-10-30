@@ -1,0 +1,8 @@
+@font-face{font-family:Inter;src:url('/fonts/inter.ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap}
+@font-face{font-family:'Space Grotesk';src:url('/fonts/space-grotesk.ttf') format('truetype');font-weight:300 700;font-style:normal;font-display:swap}
+@font-face{font-family:'JetBrains Mono';src:url('/fonts/jetbrains-mono.ttf') format('truetype');font-weight:400 700;font-style:normal;font-display:swap}
+:root{--background:#070b16;--surface:#17243a;--violet:#9b7cff;--cyan:#60efff;--lime:#c9ff5d;--coral:#ff729f;--text:#f5f8ff;--muted:#a6b8ce;--line:#a6b8ce20;--display:'Space Grotesk',Arial,sans-serif;--body:Inter,Arial,sans-serif;--mono:'JetBrains Mono','Courier New',monospace;--ease:cubic-bezier(.22,1,.36,1)}
+.accent-violet{--accent:var(--violet);--accent-soft:#c4b2ff}
+.accent-cyan{--accent:var(--cyan);--accent-soft:#a0f5ff}
+.accent-lime{--accent:var(--lime);--accent-soft:#d9ff94}
+.accent-coral{--accent:var(--coral);--accent-soft:#ffabc7}
