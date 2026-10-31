@@ -15,6 +15,9 @@ describe('scene accessibility and lifecycle controls', () => {
     expect(screen.getByTestId('canvas').getAttribute('data-loop')).toBe('always');
     await user.click(screen.getByRole('button', { name: 'Pause robotic scene' }));
     expect(screen.getByTestId('canvas').getAttribute('data-loop')).toBe('demand');
+    await user.click(screen.getByRole('button', { name: 'Wave to the robot' }));
+    expect(screen.getByTestId('canvas').getAttribute('data-loop')).toBe('always');
+    await user.click(screen.getByRole('button', { name: 'Pause robotic scene' }));
     await user.click(screen.getByRole('button', { name: 'Resume robotic scene' }));
     act(() => { Object.defineProperty(document, 'hidden', { configurable: true, value: true }); fireEvent(document, new Event('visibilitychange')); });
     expect(screen.getByTestId('canvas').getAttribute('data-loop')).toBe('demand');
@@ -25,6 +28,6 @@ describe('scene accessibility and lifecycle controls', () => {
   it('uses static artwork instead of a GPU loop for reduced motion', () => {
     render(<ThreeScene reduced />);
     expect(screen.queryByTestId('canvas')).toBeNull();
-    expect(screen.getByText('STATIC ROBOT / REDUCED MOTION')).toBeTruthy();
+    expect(screen.getByRole('img', { name: /friendly purple robotic mascot with white LED eyes/i })).toBeTruthy();
   });
 });

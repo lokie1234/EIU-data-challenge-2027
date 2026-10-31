@@ -7,7 +7,7 @@ const views = { about: [-.3, .25, 6], 'why-join': [.45, .3, 6.5], format: [-.5, 
 export default function SceneChoreography({ active, resetToken }) {
   const { camera, invalidate } = useThree();
   useGSAP(() => {
-    const [x, y, z] = views[active] || [0, .15, 5.9];
+    const [x, y, z] = views[active] || [0, .65, 5.9];
     gsap.to(camera.position, { x, y, z, duration: .85, ease: 'power3.inOut', onUpdate: invalidate });
     return () => gsap.killTweensOf(camera.position);
   }, { dependencies: [active, resetToken], revertOnUpdate: true });

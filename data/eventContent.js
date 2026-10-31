@@ -1,12 +1,12 @@
 export const portals = [
-  { id: 'about', number: '01', label: 'About', title: 'The intelligence network', teaser: 'Different majors. One shared curiosity.', icon: 'Sparkles', accent: 'violet', x: 14, y: 39, shape: 'circle' },
-  { id: 'why-join', number: '02', label: 'Why join', title: 'Human + machine', teaser: 'Connect the skills you have not met yet.', icon: 'Orbit', accent: 'cyan', x: 30, y: 26, shape: 'diamond' },
-  { id: 'format', number: '03', label: 'Challenge format', title: 'The analytics pipeline', teaser: 'Three rounds. An evolving point of view.', icon: 'Layers3', accent: 'lime', x: 78, y: 29, shape: 'levels' },
-  { id: 'timeline', number: '04', label: 'Timeline', title: 'Transformation timeline', teaser: 'Travel through the historical 2026 season.', icon: 'Waypoints', accent: 'coral', x: 87, y: 57, shape: 'orbit' },
-  { id: 'prizes', number: '05', label: 'Prizes', title: 'The robotic reward vault', teaser: 'Open the archive. Reveal the rewards.', icon: 'Gem', accent: 'lime', x: 76, y: 80, shape: 'gem' },
-  { id: 'faq', number: '06', label: 'FAQ', title: 'The knowledge terminal', teaser: 'Good questions deserve useful answers.', icon: 'MessageCircle', accent: 'cyan', x: 12, y: 70, shape: 'bubble' },
-  { id: 'partners', number: '07', label: 'Partners', title: 'The intelligence ecosystem', teaser: 'Meet the names behind the 2026 rewards.', icon: 'Shapes', accent: 'violet', x: 31, y: 86, shape: 'network' },
-  { id: 'register', number: '08', label: 'Register', title: 'The transformation gateway', teaser: 'Your next perspective is on the horizon.', icon: 'ArrowUpRight', accent: 'coral', x: 54, y: 94, shape: 'ticket' },
+  { id: 'about', number: '01', label: 'About', title: 'The intelligence network', teaser: 'Different majors. One shared curiosity.', icon: 'Sparkles', accent: 'violet', x: 14, y: 28, shape: 'circle' },
+  { id: 'why-join', number: '02', label: 'Why join', title: 'Human + machine', teaser: 'Connect the skills you have not met yet.', icon: 'Orbit', accent: 'cyan', x: 30, y: 13, shape: 'diamond' },
+  { id: 'format', number: '03', label: 'Challenge format', title: 'The analytics pipeline', teaser: 'Three rounds. An evolving point of view.', icon: 'Layers3', accent: 'lime', x: 78, y: 17, shape: 'levels' },
+  { id: 'timeline', number: '04', label: 'Timeline', title: 'Transformation timeline', teaser: 'Travel through the historical 2026 season.', icon: 'Waypoints', accent: 'coral', x: 87, y: 46, shape: 'orbit' },
+  { id: 'prizes', number: '05', label: 'Prizes', title: 'The robotic reward vault', teaser: 'Open the archive. Reveal the rewards.', icon: 'Gem', accent: 'lime', x: 76, y: 76, shape: 'gem' },
+  { id: 'faq', number: '06', label: 'FAQ', title: 'The knowledge terminal', teaser: 'Good questions deserve useful answers.', icon: 'MessageCircle', accent: 'cyan', x: 12, y: 64, shape: 'bubble' },
+  { id: 'partners', number: '07', label: 'Partners', title: 'The intelligence ecosystem', teaser: 'Meet the names behind the 2026 rewards.', icon: 'Shapes', accent: 'violet', x: 31, y: 85, shape: 'network' },
+  { id: 'register', number: '08', label: 'Register', title: 'The transformation gateway', teaser: 'Your next perspective is on the horizon.', icon: 'ArrowUpRight', accent: 'coral', x: 54, y: 87, shape: 'ticket' },
 ];
 export const eventContent = {
   name: 'EIU Data Challenge', year: '2027', concept: 'INTELLIGENCE LAB', tagline: 'Think. Analyze. Transform.',

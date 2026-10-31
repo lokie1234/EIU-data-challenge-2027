@@ -24,11 +24,11 @@ describe('AI command experience', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() => expect(document.activeElement.getAttribute('aria-haspopup')).toBe('dialog'));
   });
-  it('previews a command on keyboard focus', async () => {
+  it('activates the scene module on keyboard focus', async () => {
     render(<InteractiveHub />);
     const button = within(screen.getByRole('navigation', { name: 'AI command modules' })).getByRole('button', { name: /Timeline/i });
     act(() => button.focus());
-    expect(await screen.findByText('Travel through the historical 2026 season.')).toBeTruthy();
+    expect(document.querySelector('.lab-experience').dataset.module).toBe('timeline');
   });
   it('closes on outside click and traps keyboard focus while open', async () => {
     const { user, dialog } = await open('about');

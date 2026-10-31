@@ -1,95 +1,126 @@
 'use client';
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { RoundedBox } from '@react-three/drei';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import * as THREE from 'three';
-import { eventContent as c, getPortal } from '../../data/eventContent';
+import { getRobotPose, stepSpring } from './robotMotion';
+import { createFaceGeometry, createBezelGeometry, createSoftBodyGeometry, createFlipperGeometry } from './robotGeometry';
+
 gsap.registerPlugin(useGSAP);
 
-function RobotArm({ side, armRef, forearmRef, materials: m }) {
-  return <group position={[side * .56, -.13, 0]} ref={armRef}>
-    <mesh material={m.joint}><sphereGeometry args={[.14, 20, 16]} /></mesh>
-    <RoundedBox args={[.2, .35, .24]} radius={.06} position={[0, -.24, 0]} material={m.shell} />
-    <mesh position={[side * .105, -.22, 0]} rotation={[0, 0, Math.PI / 2]} material={m.trim}><cylinderGeometry args={[.065, .065, .025, 24]} /></mesh>
-    <group position={[0, -.45, 0]} ref={forearmRef}>
-      <mesh material={m.joint}><sphereGeometry args={[.1, 16, 12]} /></mesh>
-      <RoundedBox args={[.19, .29, .22]} radius={.05} position={[0, -.18, .035]} material={m.shell} />
-      <RoundedBox args={[.1, .1, .012]} radius={.015} position={[0, -.16, .152]} material={m.trim} />
-      <RoundedBox args={[.18, .14, .14]} radius={.035} position={[0, -.38, .04]} material={m.joint} />
-      {[-1, 0, 1].map(i => <group key={i} position={[i * .055, -.46, .065]} rotation={[-.24, 0, 0]}><mesh material={m.shell}><capsuleGeometry args={[.023, .07, 4, 8]} /></mesh><mesh position={[0, -.053, .014]} material={m.joint}><sphereGeometry args={[.025, 8, 8]} /></mesh></group>)}
-    </group>
+function makeDisplayTexture() {
+  const size = 128, pixels = new Uint8Array(size * size * 4);
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    const i = (y * size + x) * 4;
+    const value = x % 3 === 1 && y % 3 === 1 ? 38 + ((x * 17 + y * 31) % 68) : 3;
+    pixels[i] = value; pixels[i + 1] = value + 2; pixels[i + 2] = value + 5; pixels[i + 3] = 255;
+  }
+  const texture = new THREE.DataTexture(pixels, size, size);
+  texture.magFilter = THREE.NearestFilter;
+  texture.minFilter = THREE.NearestFilter;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+function makeEye() {
+  const shape = new THREE.Shape();
+  shape.moveTo(-.16, -.07);
+  shape.bezierCurveTo(-.165, .01, -.17, .125, 0, .13);
+  shape.bezierCurveTo(.17, .125, .165, .01, .16, -.07);
+  shape.quadraticCurveTo(0, -.015, -.16, -.07);
+  return shape;
+}
+
+function Flipper({ side, pivot, material, geometry }) {
+  return <group ref={pivot} position={[side * .32, -.32, .025]} rotation={[.1, 0, side * .2]}>
+    <mesh geometry={geometry} material={material} />
   </group>;
 }
 
-export default function RoboticMascot({ active, running, resetToken, onInteract }) {
+export default function RoboticMascot({ active, running, resetToken, greetToken = 0, onInteract }) {
   const entrance = useRef(null), rig = useRef(null), head = useRef(null), eyes = useRef(null);
-  const left = useRef(null), right = useRef(null), leftElbow = useRef(null), rightElbow = useRef(null);
-  const leftEye = useRef(null), rightEye = useRef(null), core = useRef(null);
-  const gesture = useRef(0);
-  const color = useMemo(() => new THREE.Color(), []);
-  const materials = useMemo(() => ({
-    shell: new THREE.MeshPhysicalMaterial({ color: '#E8EFF8', metalness: .36, roughness: .2, clearcoat: 1, clearcoatRoughness: .12 }),
-    joint: new THREE.MeshPhysicalMaterial({ color: '#24334B', metalness: .83, roughness: .23, clearcoat: .4 }),
-    trim: new THREE.MeshPhysicalMaterial({ color: '#9B7CFF', metalness: .65, roughness: .18, clearcoat: 1 }),
-    glass: new THREE.MeshPhysicalMaterial({ color: '#070E1C', metalness: .4, roughness: .09, clearcoat: 1, clearcoatRoughness: .05 }),
-  }), []);
-  useGSAP(() => {
-    if (entrance.current) gsap.fromTo(entrance.current.scale, { x: .7, y: .7, z: .7 }, { x: 1.2, y: 1.2, z: 1.2, duration: 1, ease: 'back.out(1.1)' });
-    return () => { document.body.style.cursor = ""; Object.values(materials).forEach(m => m.dispose()); };
+  const left = useRef(null), right = useRef(null), leftEye = useRef(null), rightEye = useRef(null);
+  const feet = useRef([]), glow = useRef(null);
+  const state = useRef({ time: 0, greeting: 0, hover: false, bounce: { position: 0, velocity: 0 } });
+  const resources = useMemo(() => {
+    const texture = makeDisplayTexture();
+    return {
+      texture, eye: makeEye(), face: createFaceGeometry(), frame: createBezelGeometry(), body: createSoftBodyGeometry(), flipper: createFlipperGeometry(),
+      shell: new THREE.MeshPhysicalMaterial({ color: '#812ce2', metalness: .3, roughness: .24, clearcoat: 1, clearcoatRoughness: .14 }),
+      graphite: new THREE.MeshPhysicalMaterial({ color: '#19171d', metalness: .2, roughness: .32, clearcoat: .85, clearcoatRoughness: .22 }),
+      bezel: new THREE.MeshPhysicalMaterial({ color: '#29282b', metalness: .45, roughness: .3, clearcoat: .5 }),
+      screen: new THREE.MeshPhysicalMaterial({ map: texture, emissiveMap: texture, emissive: '#cbcfdd', emissiveIntensity: .22, color: '#9b9ba8', metalness: .08, roughness: .46, clearcoat: .25 }),
+      silver: new THREE.MeshStandardMaterial({ color: '#c9ccd9', metalness: .85, roughness: .27 }),
+    };
   }, []);
-  useGSAP(() => { gesture.current = 1; }, { dependencies: [active, resetToken] });
-  useFrame(({ clock, pointer }, delta) => {
+  useEffect(() => () => {
+    resources.texture.dispose();
+    ['face', 'frame', 'body', 'flipper'].forEach(key => resources[key].dispose());
+    ['shell', 'graphite', 'bezel', 'screen', 'silver'].forEach(key => resources[key].dispose());
+  }, [resources]);
+  useGSAP(() => {
+    const tween = gsap.fromTo(entrance.current.scale, { x: .8, y: .8, z: .8 }, { x: 1.05, y: 1.05, z: 1.05, duration: 1.15, ease: 'back.out(1.4)' });
+    return () => tween.kill();
+  }, []);
+  useEffect(() => {
+    if (greetToken) { state.current.greeting = 2.6; state.current.bounce.velocity = 1.6; }
+  }, [greetToken]);
+  useEffect(() => { state.current.bounce.velocity = resetToken ? 1.2 : .65; }, [active, resetToken]);
+  useFrame(({ pointer }, delta) => {
     if (!running || !rig.current) return;
-    const dt = Math.min(delta, .05), t = clock.getElapsedTime();
-    const portal = getPortal(active);
-    const accent = c.theme[portal?.accent || 'cyan'];
-    gesture.current = Math.max(0, gesture.current - dt * 1.3);
-    rig.current.position.y = Math.sin(t * 1.1) * .045;
-    rig.current.rotation.y = THREE.MathUtils.damp(rig.current.rotation.y, pointer.x * .13, 3, dt);
-    rig.current.rotation.z = Math.sin(t * .7) * .012;
-    head.current.rotation.y = THREE.MathUtils.damp(head.current.rotation.y, pointer.x * .3 + (active === 'faq' ? -.12 : 0), 7, dt);
-    head.current.rotation.x = THREE.MathUtils.damp(head.current.rotation.x, -pointer.y * .17 + (active === 'format' ? .1 : 0), 7, dt);
-    head.current.rotation.z = THREE.MathUtils.damp(head.current.rotation.z, active === 'about' ? -.09 : 0, 4, dt);
-    eyes.current.position.x = pointer.x * .035;
-    const blink = (t % 5.2) > 5.06 ? .1 : 1;
-    leftEye.current.scale.y = THREE.MathUtils.damp(leftEye.current.scale.y, blink, 35, dt);
-    rightEye.current.scale.y = THREE.MathUtils.damp(rightEye.current.scale.y, blink, 35, dt);
-    const spread = ['why-join', 'partners', 'prizes'].includes(active) ? .48 : .08;
-    left.current.rotation.z = THREE.MathUtils.damp(left.current.rotation.z, -spread - gesture.current * .14, 6, dt);
-    right.current.rotation.z = THREE.MathUtils.damp(right.current.rotation.z, active === 'register' ? 1.7 : spread + gesture.current * .28, 6, dt);
-    leftElbow.current.rotation.x = -.25 + Math.sin(t * .9) * .025;
-    rightElbow.current.rotation.x = THREE.MathUtils.damp(rightElbow.current.rotation.x, active === 'faq' ? -1.2 : active === 'format' ? -.95 : -.35, 6, dt);
-    if (active === 'register') right.current.rotation.x = Math.sin(t * 3) * .16;
-    else right.current.rotation.x = THREE.MathUtils.damp(right.current.rotation.x, 0, 5, dt);
-    if (core.current) {
-      core.current.color.lerp(color.set(accent), 1 - Math.exp(-dt * 3));
-      core.current.emissive.copy(core.current.color);
-      core.current.emissiveIntensity = 1.1 + Math.sin(t * 2) * .15 + gesture.current * .4;
-    }
+    const s = state.current, dt = Math.min(delta, .05);
+    s.time += dt;
+    s.greeting = Math.max(0, s.greeting - dt);
+    stepSpring(s.bounce, 0, dt);
+    const pose = getRobotPose({ time: s.time, active, pointerX: pointer.x, pointerY: pointer.y, greeting: s.greeting, hovered: s.hover });
+    const damp = (current, target, speed = 7) => THREE.MathUtils.damp(current, target, speed, dt);
+    rig.current.position.y = pose.float + s.bounce.position;
+    rig.current.rotation.set(0, damp(rig.current.rotation.y, pose.bodyYaw, 3), pose.sway);
+    head.current.rotation.set(damp(head.current.rotation.x, pose.headPitch), damp(head.current.rotation.y, pose.headYaw), damp(head.current.rotation.z, pose.headTilt, 5));
+    eyes.current.position.x = damp(eyes.current.position.x, pose.gazeX, 12);
+    eyes.current.position.y = damp(eyes.current.position.y, pose.gazeY, 12);
+    leftEye.current.scale.y = damp(leftEye.current.scale.y, pose.leftEye, 32);
+    rightEye.current.scale.y = damp(rightEye.current.scale.y, pose.rightEye, 32);
+    right.current.rotation.z = damp(right.current.rotation.z, pose.rightArm, 9);
+    left.current.rotation.z = damp(left.current.rotation.z, pose.leftArm, 7);
+    right.current.rotation.x = damp(right.current.rotation.x, pose.armForward);
+    left.current.rotation.x = damp(left.current.rotation.x, pose.armForward * .5);
+    feet.current.forEach((foot, i) => { if (foot) foot.rotation.x = Math.sin(s.time * 1.8 + i * .8) * .065; });
+    glow.current.emissiveIntensity = .7 + Math.sin(s.time * 2) * .1 + (s.greeting > 0 ? .35 : 0);
   });
-  return <group ref={entrance} scale={1.2}><group ref={rig} onPointerOver={() => { document.body.style.cursor = "pointer"; }} onPointerOut={() => { document.body.style.cursor = ""; }} onClick={event => { event.stopPropagation(); gesture.current = 1; onInteract?.(); }}>
-    <group ref={head} position={[0, .54, 0]}>
-      <RoundedBox args={[1.2, .79, .7]} radius={.24} smoothness={5} material={materials.shell} />
-      <RoundedBox args={[1.055, .44, .14]} radius={.15} position={[0, -.02, .35]} material={materials.glass} />
-      <group ref={eyes} position={[0, -.015, .435]}>
-        {[-.235, .235].map((x, i) => <group key={x} position={[x, .015, 0]} ref={i ? rightEye : leftEye}><RoundedBox args={[.125, .19, .025]} radius={.052} smoothness={4}><meshBasicMaterial color="#A0F7FF" toneMapped={false} /></RoundedBox></group>)}
-        <mesh position={[0, -.12, 0]}><boxGeometry args={[.105, .012, .012]} /><meshBasicMaterial color="#60EFFF" toneMapped={false} /></mesh>
+  const greet = event => { event.stopPropagation(); state.current.greeting = 2.6; state.current.bounce.velocity = 1.6; };
+  return <group>
+    <group ref={entrance} scale={1.05} position={[0, .12, 0]}>
+      <group ref={rig} onPointerOver={event => { event.stopPropagation(); state.current.hover = true; }} onPointerOut={() => { state.current.hover = false; }} onClick={greet} onDoubleClick={event => { event.stopPropagation(); onInteract?.(); }}>
+        <group ref={head} position={[0, .48, 0]} rotation={[.025, -.1, -.025]}>
+          <RoundedBox args={[1.88, 1.67, 1.35]} radius={.4} smoothness={6} material={resources.shell} />
+          <mesh geometry={resources.frame} position={[0, -.015, .654]} material={resources.bezel} />
+          <mesh geometry={resources.face} position={[0, -.015, .714]} material={resources.screen} />
+          <group ref={eyes} position={[0, .025, .798]}>
+            {[-.222, .222].map((x, i) => <group key={x} ref={i ? rightEye : leftEye} position={[x, .12, 0]}><mesh><shapeGeometry args={[resources.eye, 20]} /><meshBasicMaterial color="#fffaf5" toneMapped={false} side={THREE.DoubleSide} /></mesh></group>)}
+          </group>
+          {[-1, 1].map(side => <group key={side} position={[side * .94, -.06, -.12]} rotation={[0, 0, Math.PI / 2]}>
+            <mesh material={resources.graphite}><cylinderGeometry args={[.19, .19, .12, 32]} /></mesh>
+            <mesh position={[0, side * .068, 0]} material={resources.silver}><cylinderGeometry args={[.125, .125, .025, 24]} /></mesh>
+            <mesh position={[0, side * .085, 0]} material={resources.graphite}><cylinderGeometry args={[.084, .084, .024, 24]} /></mesh>
+            <mesh position={[0, side * .101, 0]} rotation={[Math.PI / 2, 0, 0]}><boxGeometry args={[.085, .025, .008]} /><meshBasicMaterial color="#e5d2ff" /></mesh>
+          </group>)}
+          {[-1, 1].map(side => <mesh key={side} position={[side * .51, .825, -.2]} rotation={[0, 0, -side * .32]} material={resources.silver}><capsuleGeometry args={[.054, .095, 4, 12]} /></mesh>)}
+          {[-.25, -.08, .09].map(z => <mesh key={z} position={[0, .827, z]} material={resources.shell}><boxGeometry args={[.66, .012, .013]} /></mesh>)}
+          {[-1, 1].map(side => <group key={side} position={[side * .948, .19, -.25]} rotation={[0, 0, -.2]}>{[-.07, 0, .07].map(y => <mesh key={y} position={[0, y, 0]} material={resources.bezel}><boxGeometry args={[.012, .018, .19]} /></mesh>)}</group>)}
+        </group>
+        <mesh geometry={resources.body} position={[0, -.61, -.035]} scale={[1, 1, .86]} material={resources.graphite} />
+        <Flipper side={-1} pivot={left} material={resources.graphite} geometry={resources.flipper} />
+        <Flipper side={1} pivot={right} material={resources.graphite} geometry={resources.flipper} />
+        {[-1, 1].map((side, i) => <group key={side} ref={node => { feet.current[i] = node; }} position={[side * .17, -.91, .015]} rotation={[0, 0, side * .12]}><mesh position={[0, -.12, .045]} scale={[.155, .225, .205]} material={resources.graphite}><sphereGeometry args={[1, 28, 20]} /></mesh></group>)}
       </group>
-      {[-1, 1].map(side => <group key={side} position={[side * .65, 0, -.04]} rotation={[0, 0, Math.PI / 2]}><mesh material={materials.joint}><cylinderGeometry args={[.145, .145, .09, 32]} /></mesh><mesh position={[0, side * .06, 0]} material={materials.trim}><cylinderGeometry args={[.105, .105, .025, 24]} /></mesh></group>)}
-      <mesh position={[.35, .51, -.08]} material={materials.joint}><capsuleGeometry args={[.018, .2, 4, 8]} /></mesh>
-      <mesh position={[.35, .64, -.08]}><sphereGeometry args={[.04, 16, 12]} /><meshStandardMaterial color="#60EFFF" emissive="#60EFFF" emissiveIntensity={1.8} toneMapped={false} /></mesh>
-      <RoundedBox args={[.32, .035, .035]} radius={.01} position={[-.22, .3, .315]} material={materials.trim} />
     </group>
-    <mesh position={[0, .05, 0]} material={materials.joint}><cylinderGeometry args={[.19, .22, .18, 24]} /></mesh>
-    <RoundedBox args={[.91, .78, .61]} radius={.19} position={[0, -.37, 0]} material={materials.shell} />
-    <RoundedBox args={[.62, .44, .035]} radius={.09} position={[0, -.36, .318]} material={materials.joint} />
-    <mesh position={[0, -.33, .36]} material={materials.trim}><torusGeometry args={[.153, .025, 12, 48]} /></mesh>
-    <mesh position={[0, -.33, .36]}><sphereGeometry args={[.115, 24, 20]} /><meshStandardMaterial ref={core} color="#60EFFF" emissive="#60EFFF" emissiveIntensity={1.4} metalness={.25} roughness={.18} toneMapped={false} /></mesh>
-    <mesh position={[0, -.79, 0]} material={materials.joint}><cylinderGeometry args={[.28, .2, .16, 24]} /></mesh>
-    {[-.2, .2].map(x => <group key={x} position={[x, -.94, 0]}><mesh material={materials.trim}><cylinderGeometry args={[.12, .15, .15, 24]} /></mesh><mesh position={[0, -.085, 0]} rotation={[Math.PI / 2, 0, 0]}><circleGeometry args={[.105, 24]} /><meshBasicMaterial color="#60EFFF" transparent opacity={.45} toneMapped={false} /></mesh></group>)}
-    <RobotArm side={-1} armRef={left} forearmRef={leftElbow} materials={materials} />
-    <RobotArm side={1} armRef={right} forearmRef={rightElbow} materials={materials} />
-  </group></group>;
+    <group rotation={[0, -.28, 0]}>
+      <RoundedBox args={[1.35, .52, 1.12]} radius={.035} position={[0, -1.45, -.02]} material={resources.shell} />
+      <RoundedBox args={[1.36, .025, 1.13]} radius={.01} position={[0, -1.178, -.02]}><meshStandardMaterial ref={glow} color="#c372ff" emissive="#a044ff" emissiveIntensity={.8} metalness={.25} roughness={.32} /></RoundedBox>
+    </group>
+  </group>;
 }

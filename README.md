@@ -61,7 +61,8 @@ Important caveats retained in the UI:
 - **IntelligentNavigation.jsx:** spatial desktop command modules and deliberate mobile selector.
 - **ExperienceShell.jsx:** shared Radix infrastructure with section-specific dimensions, composition and transitions; focus return, scroll locking, Escape/outside close.
 - **components/sections/:** eight separate interactive content experiences and shared source/detail notes.
-- **components/three/RoboticMascot.jsx:** procedural ceramic/metal robot, expressive eyes, pointer tracking and section-specific gestures.
+- **components/three/RoboticMascot.jsx:** reference-inspired purple helmet, graphite body, procedural LED face, white expressive eyes, flipper arms and illuminated pedestal. Click/tap to greet; double-click to explore. The keyboard-accessible hand button also triggers a greeting and resumes a paused scene.
+- **components/three/robotMotion.js:** bounded secondary spring motion, pointer/module gaze, idle breathing, double blinks, thinking/open-arm poses and timed waving. Animation time advances only while the scene is running, preventing a time jump after pausing or hiding the tab. GSAP owns entrance scale; frame updates own the inner rig.
 - **AIEnvironment.jsx:** connected neural geometry, restrained pulses, data-to-pipeline transformation, labeled demo charts and 3D reward chamber.
 - **SceneChoreography.jsx:** GSAP camera changes.
 - **SceneEffects.jsx:** lightweight bloom, disabled on compact/low-performance rendering.
