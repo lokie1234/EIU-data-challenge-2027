@@ -1,0 +1,67 @@
+import { StrictMode } from 'react';
+import { render } from '@testing-library/react';
+import { afterEach, expect, it, vi } from 'vitest';
+import GridScan from '../components/GridScan';
+
+afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+
+it('survives a StrictMode effect restart, pauses when hidden and never starts a disabled webcam', () => {
+  vi.spyOn(window, 'matchMedia').mockReturnValue({ matches: false });
+  let resize;
+  vi.stubGlobal('ResizeObserver', class { constructor(callback) { resize = callback; } observe() {} disconnect() {} });
+  let lost = false;
+  const loseContext = vi.fn(() => { lost = true; });
+  const calls = new Map();
+  const gl = new Proxy({}, { get: (_target, name) => {
+    if (/^[A-Z_0-9]+$/.test(name)) return name;
+    if (!calls.has(name)) calls.set(name, vi.fn(() => {
+      if (name.startsWith('create')) return {};
+      if (name === 'getExtension') return { loseContext };
+      if (name === 'getShaderParameter') return !lost;
+      if (name === 'getProgramParameter') return true;
+      if (name === 'getActiveUniform') return null;
+      return null;
+    }));
+    return calls.get(name);
+  } });
+  const colorProbe = { clearRect() {}, fillRect() {}, getImageData: () => ({ data: [86, 98, 113, 255] }) };
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(type => type === '2d' ? colorProbe : gl);
+  vi.stubGlobal('requestAnimationFrame', vi.fn(() => 42));
+  vi.stubGlobal('cancelAnimationFrame', vi.fn());
+  vi.stubGlobal('IntersectionObserver', class { observe() {} disconnect() {} });
+  const camera = vi.fn();
+  Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia: camera } });
+  const { container, unmount } = render(<StrictMode><GridScan enableWebcam={false} pencil={0.8} /></StrictMode>);
+  expect(loseContext).not.toHaveBeenCalled();
+  expect(gl.drawArrays).toHaveBeenCalledTimes(4);
+  expect(gl.createShader).toHaveBeenCalledTimes(10);
+  resize(); resize();
+  expect(gl.drawArrays).toHaveBeenCalledTimes(4);
+  const paint = requestAnimationFrame.mock.calls.at(-1)[0];
+  const colorUploads = gl.uniform3fv.mock.calls.length;
+  for (let frame = 0; frame < 6; frame++) paint(100 + frame * 1000 / 60);
+  expect(gl.drawArrays).toHaveBeenCalledTimes(16);
+  expect(gl.uniform3fv).toHaveBeenCalledTimes(colorUploads);
+  const beforeHighRefresh = gl.drawArrays.mock.calls.length;
+  for (let frame = 0; frame < 144; frame++) paint(200 + frame * 1000 / 144);
+  const highRefreshPaints = (gl.drawArrays.mock.calls.length - beforeHighRefresh) / 2;
+  expect(highRefreshPaints).toBeGreaterThanOrEqual(58);
+  expect(highRefreshPaints).toBeLessThanOrEqual(62);
+  expect(container.querySelector('.grid-scan').dataset.rendered).toBe('true');
+  expect(container.querySelector('video')).toBeNull();
+  expect(camera).not.toHaveBeenCalled();
+  expect(document.querySelector('script[src*="face-api"]')).toBeNull();
+  const before = requestAnimationFrame.mock.calls.length;
+  vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
+  document.dispatchEvent(new Event('visibilitychange'));
+  expect(cancelAnimationFrame).toHaveBeenCalledWith(42);
+  expect(requestAnimationFrame).toHaveBeenCalledTimes(before);
+  vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
+  document.dispatchEvent(new Event('visibilitychange'));
+  expect(requestAnimationFrame).toHaveBeenCalledTimes(before + 1);
+  unmount();
+  expect(gl.deleteTexture).toHaveBeenCalledTimes(8);
+  expect(gl.deleteFramebuffer).toHaveBeenCalledTimes(6);
+  expect(gl.deleteProgram).toHaveBeenCalledTimes(8);
+  expect(loseContext).not.toHaveBeenCalled();
+});

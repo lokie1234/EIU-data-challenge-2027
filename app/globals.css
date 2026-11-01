@@ -1,6 +1,7 @@
 @import '../styles/tokens.css';
 @import '../styles/animations.css';
 @import '../styles/lab.css';
+@import '../styles/module-tiles.css';
 *{box-sizing:border-box}
 html{background:var(--background);color-scheme:dark;scroll-behavior:smooth}
 body{margin:0;font-family:var(--body);color:var(--text);font-size:14px;line-height:1.65;-webkit-font-smoothing:antialiased}

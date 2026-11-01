@@ -8,7 +8,8 @@ import InteractiveHub from '../components/InteractiveHub';
 it('never blocks category changes on an outgoing animation', async () => {
   const user = userEvent.setup();
   render(<InteractiveHub />);
-  await user.click(within(screen.getByRole('navigation', { name: 'AI command modules' })).getByRole('button', { name: /About/ }));
+  const navigation = await screen.findByRole('navigation', { name: 'AI command modules' });
+  await user.click(within(navigation).getByRole('button', { name: /About/ }));
   const dialog = await screen.findByRole('dialog');
   await user.click(within(dialog).getByRole('button', { name: '04. Timeline' }));
   expect(await within(dialog).findByRole('heading', { name: 'Transformation timeline' })).toBeTruthy();
